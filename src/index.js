@@ -1,5 +1,5 @@
 const childProcess = require('child_process');
-const fsPromises = require('fs/promises');
+const fs = require('fs');
 const {version: programVersion} = require('../package.json');
 const path = require('path');
 const Shell = require('node-powershell');
@@ -111,11 +111,12 @@ const getPeers = async () => {
 
 config.blockIp = async (ip) => {
     debug('blockIp:', ip);
-    await fsPromises.appendFile(
+    await new Promise(resolve => fs.appendFile(
         path.join(config.dir, '..', 'ipfilter.dat'),
         `${ip}\n`,
-        {flag: 'a'}
-    );
+        {flag: 'a'},
+        resolve
+    ));
 }
 
 const blockIpFirewall = async (ip) => {
@@ -216,7 +217,8 @@ const run = async () => {
 
     if (config.flagClearIpFilter) {
         debug('Start clear filter');
-        await fsPromises.appendFile(path.join(config.dir, '..', 'ipfilter.dat'), ``, {flag: 'w'});
+        await new Promise(resolve =>
+            fs.appendFile(path.join(config.dir, '..', 'ipfilter.dat'), ``, {flag: 'w'}, resolve));
     }
 
     log(`Manager started! Scan interval: ${config.interval}`);
