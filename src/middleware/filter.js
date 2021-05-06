@@ -18,20 +18,25 @@ const mu = config.filters.mu;
 const bit = config.filters.bit;
 const muMac = config.filters.muMac;
 const libtorrent = config.filters.libtorrent;
-const filterMuMac = peer => peer.client.startsWith('μTorrent Mac') && peer.version[0] >= muMac.major && peer.version >= muMac.minor;
-const filterMu = peer => (peer.client.startsWith('μTorrent') || peer.client.startsWith('µTorrent')) && peer.version[0] >= mu.major && peer.version[1] >= mu.minor;
-const filterBit = peer => peer.client.startsWith('BitTorrent') && peer.version[0] >= bit.major && peer.version[1] >= bit.minor;
-const filterLibtorrent = peer => peer.client.startsWith('libtorrent') && peer.version[0] >= libtorrent.major && peer.version[1] >= libtorrent.minor;
+
+const filters = {
+    MuMac: peer => peer.client.startsWith('μTorrent Mac') && peer.version[0] >= muMac.major && peer.version >= muMac.minor,
+    Mu: peer => (peer.client.startsWith('μTorrent') || peer.client.startsWith('µTorrent')) && peer.version[0] >= mu.major && peer.version[1] >= mu.minor,
+    Bit: peer => peer.client.startsWith('BitTorrent') && peer.version[0] >= bit.major && peer.version[1] >= bit.minor,
+    Libtorrent: peer => peer.client.startsWith('libtorrent') && peer.version[0] >= libtorrent.major && peer.version[1] >= libtorrent.minor,
+}
+
+const passFilters = peer =>  {
+    const applyFilters = Object.keys(filters).map(f => filters[f](peer));
+    return applyFilters.includes(true);
+}
 
 const blockPeers = async (peers) => {
     if (blockedIp.length > 100000) blockedIp = [];
 
     for (let i = 0; i < peers.length; i++) {
         const peer = peers[i];
-        if (!filterMu(peer) &&
-            !filterBit(peer) &&
-            !filterMuMac(peer) &&
-            !filterLibtorrent(peer) &&
+        if (!passFilters(peer) &&
             !blockedIp.includes(peer.ip)
         ) {
             log.info(`${new Date().toLocaleString()}:\tBlock`, peer.ip, peer.client);
